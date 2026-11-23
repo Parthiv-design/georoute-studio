@@ -1,0 +1,63 @@
+<div class="map-toolbar">
+    <div class="brand-pill">
+        <span class="brand-dot"></span>
+        <strong style="font-size: 13.5px; letter-spacing: -0.2px;">GeoRoute Studio</strong>
+    </div>
+    <span id="statusBadge" style="font-size: 12.5px; color: var(--ui-muted); font-weight: 600;">
+        0 stops &bull; 0 km
+    </span>
+    <button id="addPinModeBtn" class="map-btn btn-primary" onclick="toggleAddPinMode()" title="Click map to place a stop">
+        + Place Stop
+    </button>
+    <button class="map-btn btn-secondary" onclick="document.getElementById('csvFileInput').click()" title="Open a CSV file">
+        &#x1F4C2; Load CSV
+    </button>
+    <button class="map-btn btn-secondary" onclick="document.getElementById('jsonFileInput').click()" title="Open a JSON file">
+        &#x1F4C2; Load JSON
+    </button>
+    <button class="map-btn btn-secondary" onclick="fitAllPins()" title="Fit all stops on screen">
+        Fit Route
+    </button>
+    <button id="routeLineBtn" class="map-btn btn-active" onclick="toggleRouteLine()" title="Show/hide sequential route path">
+        Route Path
+    </button>
+    <button class="map-btn btn-secondary" onclick="clearAllPins()" title="Remove all stops from map">
+        Clear All
+    </button>
+    <button id="drawerToggleBtn" class="map-btn btn-secondary" onclick="toggleCoordsDrawer()">
+        Manifest
+    </button>
+    <button id="saveDiskBtn" class="map-btn btn-success" onclick="saveToDisk()" title="Save route manifest to disk">
+        &#x1F4BE; Save
+    </button>
+    <button class="map-btn btn-secondary" onclick="downloadCSV()">&#x2B07; CSV</button>
+    <button class="map-btn btn-secondary" onclick="downloadJSON()">&#x2B07; JSON</button>
+    <button id="themeToggleBtn" class="map-btn btn-secondary" onclick="toggleTheme()" title="Switch light/dark map theme">
+        &#9790; Dark
+    </button>
+</div>
+
+<!-- Hidden native file inputs triggered by Load CSV / Load JSON -->
+<input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleFileUpload(event, 'csv')">
+<input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="handleFileUpload(event, 'json')">
+
+<div id="coordsDrawer" class="coords-drawer">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong id="drawerTitle" style="font-size: 14px;">Route Manifest (0 stops)</strong>
+        <button onclick="toggleCoordsDrawer()" style="border:none; background:none; font-size:18px; cursor:pointer; color:var(--ui-muted);">&times;</button>
+    </div>
+    <div id="geoStatsBar" class="geo-stats-bar">
+        <span>Est. Path: 0 km</span>
+        <span>N:0 S:0 E:0 W:0</span>
+    </div>
+    <input id="coordSearchInput" class="search-box" type="text"
+           placeholder="Search stop #, label, or coordinates..." oninput="renderTable()">
+    <div class="table-scroll">
+        <table>
+            <thead><tr><th>#</th><th>Stop / Coords</th><th></th></tr></thead>
+            <tbody id="coordsTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="toastBanner" class="toast-banner"></div>
