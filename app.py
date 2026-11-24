@@ -2,7 +2,12 @@ import logging
 import os
 import threading
 import webbrowser
-from data import compute_route_stats, parse_uploaded_text, serialize_records
+from data import (
+    compute_route_stats,
+    decode_shared_route,
+    parse_uploaded_text,
+    serialize_records,
+)
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
 from map_builder import build_initial_page
@@ -14,7 +19,9 @@ logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 @app.route("/")
 def index():
-  return build_initial_page()
+  encoded_route = request.args.get("route", "")
+  shared_records = decode_shared_route(encoded_route)
+  return build_initial_page(initial_records=shared_records)
 
 
 @app.route("/api/parse", methods=["POST"])
@@ -61,11 +68,6 @@ def api_save():
     return jsonify({"saved_path": save_path, "count": len(records)}), 200
   except Exception as e:
     return jsonify({"error": str(e)}), 500
-
-
-@app.route("/heartbeat")
-def heartbeat():
-  return "ok", 200
 
 
 if __name__ == "__main__":
