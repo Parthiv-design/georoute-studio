@@ -281,33 +281,64 @@ function copyShareableLink() {
         return;
     }
 
-    // Compact format: [[lat, lon, label], ...] to keep URLs short
+    // Compact format: [[lat, lon, label], ...]
     const compact = COORDS_DATA.map(r => [
         Number(r.latitude),
         Number(r.longitude),
         r.label || `Stop #${r.point}`
     ]);
 
-    // UTF-8 safe Base64 URL encoding
     const jsonStr = JSON.stringify(compact);
     const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g,
         (_, p1) => String.fromCharCode('0x' + p1)
     )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-    const shareUrl = `${window.location.origin}${window.location.pathname}#route=${base64}`;
-    window.history.replaceState(null, '', `#route=${base64}`);
+    const targetWin = window.top || window;
+    const baseUrl = `${targetWin.location.origin}${targetWin.location.pathname}`;
+    const shareUrl = `${baseUrl}?route=${base64}`;
 
-    navigator.clipboard.writeText(shareUrl)
-        .then(() => showToast('Shareable route link copied to clipboard!'))
-        .catch(() => showToast('Route encoded in address bar — copy URL to share'));
+    try {
+        targetWin.history.replaceState(null, '', `?route=${base64}`);
+    } catch (e) {
+        window.history.replaceState(null, '', `?route=${base64}`);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => showToast('Shareable link copied to clipboard!'))
+            .catch(() => fallbackCopyText(shareUrl));
+    } else {
+        fallbackCopyText(shareUrl);
+    }
+}
+
+function fallbackCopyText(text) {
+    const tempInput = document.createElement('input');
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    showToast('Shareable link copied to clipboard!');
 }
 
 function loadRouteFromUrl() {
-    const hash = window.location.hash || '';
-    if (!hash.startsWith('#route=')) return false;
+    const targetWin = window.top || window;
+    const params = new URLSearchParams(targetWin.location.search || window.location.search);
+    let encoded = params.get('route');
+
+    // Also support legacy #route= links
+    if (!encoded) {
+        const hash = targetWin.location.hash || window.location.hash || '';
+        if (hash.startsWith('#route=')) {
+            encoded = hash.slice(7);
+        }
+    }
+
+    if (!encoded) return false;
 
     try {
-        let base64 = hash.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+        let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
         while (base64.length % 4) base64 += '=';
 
         const binary = atob(base64);
@@ -318,12 +349,15 @@ function loadRouteFromUrl() {
 
         if (!Array.isArray(compact) || compact.length === 0) return false;
 
-        COORDS_DATA = compact.map((item, idx) => ({
-            point: idx + 1,
-            latitude: Number(item),
-            longitude: Number(item),
-            label: item ? String(item) : `Stop #${idx + 1}`
-        }));
+        COORDS_DATA = compact.map((entry, idx) => {
+            const [lat, lon, rawLabel] = entry;
+            return {
+                point: idx + 1,
+                latitude: Number(lat),
+                longitude: Number(lon),
+                label: rawLabel ? String(rawLabel) : `Stop #${idx + 1}`
+            };
+        });
 
         rebuildAllMarkers();
         updateStatusAndStats();
