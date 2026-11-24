@@ -274,3 +274,67 @@ async function exportFile(fileType) {
 
 function downloadCSV() { exportFile('csv'); }
 function downloadJSON() { exportFile('json'); }
+
+function copyShareableLink() {
+    if (COORDS_DATA.length === 0) {
+        showToast('Place or load stops first to share a route');
+        return;
+    }
+
+    // Compact format: [[lat, lon, label], ...] to keep URLs short
+    const compact = COORDS_DATA.map(r => [
+        Number(r.latitude),
+        Number(r.longitude),
+        r.label || `Stop #${r.point}`
+    ]);
+
+    // UTF-8 safe Base64 URL encoding
+    const jsonStr = JSON.stringify(compact);
+    const base64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g,
+        (_, p1) => String.fromCharCode('0x' + p1)
+    )).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}#route=${base64}`;
+    window.history.replaceState(null, '', `#route=${base64}`);
+
+    navigator.clipboard.writeText(shareUrl)
+        .then(() => showToast('Shareable route link copied to clipboard!'))
+        .catch(() => showToast('Route encoded in address bar — copy URL to share'));
+}
+
+function loadRouteFromUrl() {
+    const hash = window.location.hash || '';
+    if (!hash.startsWith('#route=')) return false;
+
+    try {
+        let base64 = hash.slice(7).replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+
+        const binary = atob(base64);
+        const percentEncoded = Array.from(binary)
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('');
+        const compact = JSON.parse(decodeURIComponent(percentEncoded));
+
+        if (!Array.isArray(compact) || compact.length === 0) return false;
+
+        COORDS_DATA = compact.map((item, idx) => ({
+            point: idx + 1,
+            latitude: Number(item),
+            longitude: Number(item),
+            label: item ? String(item) : `Stop #${idx + 1}`
+        }));
+
+        rebuildAllMarkers();
+        updateStatusAndStats();
+        redrawRoutePolyline();
+        renderTable();
+        fitAllPins();
+        showToast(`Loaded shared route (${COORDS_DATA.length} stops)`);
+        return true;
+    } catch (err) {
+        console.error('Invalid share link:', err);
+        showToast('Could not read shared route from URL');
+        return false;
+    }
+}
