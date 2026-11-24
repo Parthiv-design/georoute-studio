@@ -2,8 +2,7 @@ import json
 import os
 
 
-def build_overlay_html(map_var_name):
-  """Load static/overlay.html, inject window.GEOROUTE_CONFIG, and link static CSS/JS files."""
+def build_overlay_html(map_var_name, initial_records=None):
   theme_config = {
       "light": {
           "label": "Dark",
@@ -23,6 +22,7 @@ def build_overlay_html(map_var_name):
 
   ui_context = {
       "mapVarName": map_var_name,
+      "initialRecords": initial_records or [],
       "defaultSaveName": "dispatch_route.csv",
       "themes": theme_config,
   }
