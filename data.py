@@ -1,3 +1,4 @@
+import base64
 import csv
 import io
 import itertools
@@ -6,7 +7,6 @@ import math
 
 
 def get_first_valid(mapping, keys):
-  """Safely retrieve a value without treating 0 or 0.0 as missing."""
   for key in keys:
     if key in mapping and mapping[key] not in (None, ""):
       return mapping[key]
@@ -14,7 +14,6 @@ def get_first_valid(mapping, keys):
 
 
 def calculate_route_km(records):
-  """Compute total sequential Haversine distance in kilometers across all stops."""
   if len(records) < 2:
     return 0.0
 
@@ -40,7 +39,6 @@ def calculate_route_km(records):
 
 
 def compute_route_stats(records):
-  """Calculate total distance and hemisphere counts for the UI status bar."""
   north = sum(1 for r in records if float(r["latitude"]) >= 0)
   south = len(records) - north
   east = sum(1 for r in records if float(r["longitude"]) >= 0)
@@ -56,8 +54,35 @@ def compute_route_stats(records):
   }
 
 
+def decode_shared_route(encoded_str):
+  """Decode a URL-safe Base64 ?route=... string directly on the server."""
+  if not encoded_str:
+    return []
+  try:
+    padded = encoded_str + "=" * (-len(encoded_str) % 4)
+    raw_bytes = base64.urlsafe_b64decode(padded.encode("ascii"))
+    compact = json.loads(raw_bytes.decode("utf-8"))
+
+    records = []
+    for idx, entry in enumerate(compact):
+      lat, lon = float(entry[0]), float(entry[1])
+      label = (
+          str(entry[2])
+          if len(entry) > 2 and entry[2]
+          else f"Stop #{idx + 1}"
+      )
+      records.append({
+          "point": idx + 1,
+          "label": label,
+          "latitude": lat,
+          "longitude": lon,
+      })
+    return records
+  except Exception:
+    return []
+
+
 def parse_uploaded_text(raw_text, file_type):
-  """Parse uploaded CSV or JSON string into normalized route stop records."""
   latitude_list = []
   longitude_list = []
   labels_list = []
@@ -113,7 +138,6 @@ def parse_uploaded_text(raw_text, file_type):
 
 
 def serialize_records(records, file_type):
-  """Format route records into clean CSV or JSON text for saving or downloading."""
   if file_type == "json":
     clean = [
         {
