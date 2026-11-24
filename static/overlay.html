@@ -27,11 +27,11 @@
     <button id="drawerToggleBtn" class="map-btn btn-secondary" onclick="toggleCoordsDrawer()">
         Manifest
     </button>
-    <button id="saveDiskBtn" class="map-btn btn-success" onclick="saveToDisk()" title="Save route manifest to disk">
-        &#x1F4BE; Save
-    </button>
     <button class="map-btn btn-primary" onclick="copyShareableLink()" title="Copy shareable route URL">
         &#x1F517; Share
+    </button>
+    <button id="saveDiskBtn" class="map-btn btn-success" onclick="saveToDisk()" title="Save route manifest to disk">
+        &#x1F4BE; Save
     </button>
     <button class="map-btn btn-secondary" onclick="downloadCSV()">&#x2B07; CSV</button>
     <button class="map-btn btn-secondary" onclick="downloadJSON()">&#x2B07; JSON</button>
@@ -40,7 +40,6 @@
     </button>
 </div>
 
-<!-- Hidden native file inputs triggered by Load CSV / Load JSON -->
 <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="handleFileUpload(event, 'csv')">
 <input type="file" id="jsonFileInput" accept=".json" style="display: none;" onchange="handleFileUpload(event, 'json')">
 
